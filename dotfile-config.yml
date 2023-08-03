@@ -1,0 +1,11 @@
+---
+
+exclude:
+  - ./.git
+  - ./__pycache__
+  - .gitignore
+  - README.md
+  - install.py
+  - dotfile-config.yml
+
+dotfiles:
