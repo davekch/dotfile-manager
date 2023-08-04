@@ -6,6 +6,10 @@ exclude:
   - .gitignore
   - README.md
   - install.py
+  - file-dotfile.py
   - dotfile-config.yml
+
+source: .
+target: "~"
 
 dotfiles:

@@ -27,13 +27,13 @@ def create_symlink(sourcedir: Path, linkdir: Path, file: Path) -> Path:
     os.symlink(sourcedir / file, linkdir / file)
 
 
-def get_dotfiles(path=DOTPATH, configfile=CONFIG) -> Dict[Path, dict]:
+def get_dotfiles(path=None, config=None) -> Dict[Path, dict]:
     """
-    return all dotfile paths in `path`, annotated by tags in `configfile`
+    return all dotfile paths in `path`, annotated by tags in `config`
     """
-    with open(configfile) as f:
-        config = yaml.safe_load(f)
-    exclude = config.get("exclude", {})
+    config = config or {}
+    path = path or config.get("source", DOTPATH)
+    exclude = config.get("exclude", [])
     dot_attrs = config.get("dotfiles", {})
 
     dotfiles = {}
@@ -72,7 +72,7 @@ def yesno(question):
 def main_symlinks(
     dotpath: Path,
     homedir: Path,
-    configfile: Path,
+    config: dict,
     tags: list,
     skip_tags: list,
     overwrite: bool,
@@ -87,7 +87,7 @@ def main_symlinks(
     - overwrite: overwrite existing files. if false, an interactive prompt appears
     - dry: run dry
     """
-    dotfiles = get_dotfiles(dotpath, configfile)
+    dotfiles = get_dotfiles(dotpath, config)
     dotpath = dotpath.resolve()
     homedir = homedir.resolve()
     logger.debug(f"{dotfiles=}")
@@ -121,10 +121,8 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--source", default=DOTPATH, help="directory of dotfiles (default='.')"
-    )
-    parser.add_argument("--target", default="~", help="home directory (defaul='~')")
+    parser.add_argument("--source", help="directory of dotfiles")
+    parser.add_argument("--target", help="home directory")
     parser.add_argument(
         "-f", "--config-file", default=CONFIG, help="path to config file"
     )
@@ -148,10 +146,18 @@ if __name__ == "__main__":
     level = "DEBUG" if args.v else "INFO"
     logging.basicConfig(level=level, format="[%(levelname)-8s] %(message)s")
 
+
+    # load config
+    with open(args.config_file) as f:
+        config = yaml.safe_load(f)
+
+    source = args.source or config.get("source", DOTPATH)
+    target = args.target or config.get("target", "~")
+
     main_symlinks(
-        Path(args.source).expanduser(),
-        Path(args.target).expanduser(),
-        Path(args.config_file),
+        Path(source).expanduser(),
+        Path(target).expanduser(),
+        config,
         args.tags.split(",") if args.tags else [],
         args.skip_tags.split(",") if args.skip_tags else [],
         args.yes,
