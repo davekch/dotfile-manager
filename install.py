@@ -2,6 +2,7 @@
 
 
 import os
+import sys
 from pathlib import Path
 import yaml
 from typing import Dict
@@ -140,16 +141,11 @@ if __name__ == "__main__":
         help="dry run (does not create or delete any files)",
     )
     parser.add_argument("-v", action="store_true", help="verbose output")
+    parser.add_argument("-l", "--list-files", action="store_true", help="list files and tags and exit")
 
     args = parser.parse_args()
     level = "DEBUG" if args.v else "INFO"
     logging.basicConfig(level=level, format="[%(levelname)-8s] %(message)s")
-
-    # install file-dotfile
-    file_dotfile = Path("~/.local/bin/file-dotfile").expanduser()
-    if not file_dotfile.exists():
-        logger.info("installing file-dotfile to ~/.local/bin/")
-        os.symlink(Path("file-dotfile.py").resolve(), file_dotfile)
 
     # load config
     with open(args.config_file) as f:
@@ -157,6 +153,19 @@ if __name__ == "__main__":
 
     source = args.source or config.get("source", DOTPATH)
     target = args.target or config.get("target", "~")
+
+    if args.list_files:
+        dotfiles = get_dotfiles(Path(source).expanduser(), config)
+        for file, attrs in dotfiles.items():
+            print(file)
+            print(f"    tags: [{', '.join(attrs['tags'])}]")
+        sys.exit()
+
+    # install file-dotfile
+    file_dotfile = Path("~/.local/bin/file-dotfile").expanduser()
+    if not file_dotfile.exists():
+        logger.info("installing file-dotfile to ~/.local/bin/")
+        os.symlink(Path("file-dotfile.py").resolve(), file_dotfile)
 
     main_symlinks(
         Path(source).expanduser(),
