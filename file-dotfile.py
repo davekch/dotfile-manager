@@ -6,7 +6,10 @@ import os
 import logging
 import yaml
 
-REPODIR = Path(__file__).parent
+REPODIR = Path(__file__).resolve()
+if REPODIR.is_symlink():
+    REPODIR = Path(os.readlink(REPODIR))
+REPODIR = REPODIR.parent
 sys.path.insert(0, REPODIR)
 
 import install
@@ -14,14 +17,12 @@ import install
 logger = logging.getLogger(__name__)
 
 
-def get_abs_paths(files: list, config: Path = install.CONFIG) -> list:
+def get_abs_paths(files: list, config: dict) -> list:
     """
     get the source and target absolute paths for `files`
     """
-    with open(args.config_file) as f:
-        config = yaml.safe_load(f)
-    sourcedir = Path(config["source"]).expanduser()
-    targetdir = Path(config["target"]).expanduser()
+    sourcedir = Path(config.get("source", ".")).expanduser()
+    targetdir = Path(config.get("target", "~")).expanduser()
     # if source or target are not absolute, assume relative paths to this repo
     if not sourcedir.is_absolute():
         sourcedir = (REPODIR / sourcedir).resolve()
@@ -56,7 +57,10 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    for original, moved in get_abs_paths(args.files, args.config_file):
+    with open(args.config_file) as f:
+        config = yaml.safe_load(f)
+
+    for original, moved in get_abs_paths(args.files, config):
         logger.info(f"replacing {original} with symlink to {moved}")
         if not moved.parent.exists():
             os.makedirs(moved.parent)
