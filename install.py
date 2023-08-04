@@ -33,7 +33,7 @@ def get_dotfiles(path=None, config=None) -> Dict[Path, dict]:
     config = config or {}
     path = path or config.get("source", DOTPATH)
     exclude = config.get("exclude", [])
-    dot_attrs = config.get("dotfiles", {})
+    dot_attrs = config.get("dotfiles", {}) or {}
 
     dotfiles = {}
     for subdir, _, files in os.walk(path):
