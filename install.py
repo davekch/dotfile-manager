@@ -38,13 +38,15 @@ def get_dotfiles(path=DOTPATH, configfile=CONFIG) -> Dict[Path, dict]:
 
     dotfiles = {}
     for subdir, _, files in os.walk(path):
-        if subdir in exclude or any(Path(e) in Path(subdir).parents for e in exclude):
+        if subdir in exclude or any(
+            Path(e) in Path(subdir).relative_to(path).parents for e in exclude
+        ):
             continue
         for file in files:
             if file in exclude:
                 continue
 
-            dotfile = Path(subdir) / file
+            dotfile = Path(subdir).relative_to(path) / file
             dotfiles[dotfile] = {"tags": set()}
             # iterate over config and set attr if there's a match
             for df, attrs in dot_attrs.items():
