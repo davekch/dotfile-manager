@@ -2,7 +2,8 @@
 to file your dotfiles
 
 ## usage
-keep your dotfiles in this repository. for example
+### install dotfiles from a repository
+keep your dotfiles in this or in a separate repository. for example
 ```text
 .
 ├── .config
@@ -13,13 +14,17 @@ keep your dotfiles in this repository. for example
 └── .zshrc
 ```
 
-running `./install.py` will create symlinks to these files in your home directory, keeping the directory structure. for the example above, the script will create those links:
+running `./install.py --source /path/to/repo` will create symlinks to these files in your home directory, keeping the directory structure. for the example above, the script will create those links:
 ```text
-$HOME/.zshrc -> /path/to/file-dotfiles/.zshrc
-$HOME/.config/nvim/init.vim -> /path/to/file-dotfiles/testbed/.config/nvim/init.vim
-$HOME/.ssh/config -> /path/to/file-dotfiles/testbed/.ssh/config
+$HOME/.zshrc -> /path/to/repo/.zshrc
+$HOME/.config/nvim/init.vim -> /path/to/repo/testbed/.config/nvim/init.vim
+$HOME/.ssh/config -> /path/to/repo/testbed/.ssh/config
 ```
 
+### adding dotfiles to the repository
+`file-dotfile file1 file2 ...` will copy these files to your repository and replace them with symlinks to the files in the repository.
+
+### more
 for extra fancyness, tag files or folders in the `dotfiles` section of `dotfile-config.yml` and specify combinations of tags to install. for example:
 ```yaml
 dotfiles:
@@ -36,12 +41,13 @@ now use `./install.py --tags config,ssh --skip-tags gui` to install every dot fi
 
 all arguments:
 ```text
-usage: install.py [-h] [--source SOURCE] [--target TARGET] [-f CONFIG_FILE] [--tags TAGS] [--skip-tags SKIP_TAGS] [-y] [--dry] [-v]
+usage: install.py [-h] [--source SOURCE] [--target TARGET] [-f CONFIG_FILE] [--tags TAGS] [--skip-tags SKIP_TAGS] [-y]
+                  [--dry] [-v]
 
 options:
   -h, --help            show this help message and exit
-  --source SOURCE       directory of dotfiles (default='.')
-  --target TARGET       home directory (defaul='~')
+  --source SOURCE       directory of dotfiles
+  --target TARGET       home directory
   -f CONFIG_FILE, --config-file CONFIG_FILE
                         path to config file
   --tags TAGS           specify tags to include. if no tags are given, everything is included
