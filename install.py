@@ -121,14 +121,28 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--source", default=DOTPATH)
-    parser.add_argument("--target", default="~")
-    parser.add_argument("-f", "--config-file", default=CONFIG)
-    parser.add_argument("--tags", default="")
-    parser.add_argument("--skip-tags", default="")
-    parser.add_argument("-y", "--yes", action="store_true")
-    parser.add_argument("--dry", action="store_true")
-    parser.add_argument("-v", action="store_true")
+    parser.add_argument(
+        "--source", default=DOTPATH, help="directory of dotfiles (default='.')"
+    )
+    parser.add_argument("--target", default="~", help="home directory (defaul='~')")
+    parser.add_argument(
+        "-f", "--config-file", default=CONFIG, help="path to config file"
+    )
+    parser.add_argument(
+        "--tags",
+        default="",
+        help="specify tags to include. if no tags are given, everything is included",
+    )
+    parser.add_argument("--skip-tags", default="", help="specify tags to skip")
+    parser.add_argument(
+        "-y", "--yes", action="store_true", help="don't ask to replace existing files"
+    )
+    parser.add_argument(
+        "--dry",
+        action="store_true",
+        help="dry run (does not create or delete any files)",
+    )
+    parser.add_argument("-v", action="store_true", help="verbose output")
 
     args = parser.parse_args()
     level = "DEBUG" if args.v else "INFO"
