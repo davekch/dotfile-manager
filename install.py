@@ -4,7 +4,6 @@
 import os
 from pathlib import Path
 import yaml
-from collections import defaultdict
 from typing import Dict
 import logging
 
@@ -146,6 +145,11 @@ if __name__ == "__main__":
     level = "DEBUG" if args.v else "INFO"
     logging.basicConfig(level=level, format="[%(levelname)-8s] %(message)s")
 
+    # install file-dotfile
+    file_dotfile = Path("~/.local/bin/file-dotfile").expanduser()
+    if not file_dotfile.exists():
+        logger.info("installing file-dotfile to ~/.local/bin/")
+        os.symlink(Path("file-dotfile.py").resolve(), file_dotfile)
 
     # load config
     with open(args.config_file) as f:
