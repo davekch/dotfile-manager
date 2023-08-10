@@ -21,7 +21,7 @@ def create_symlink(sourcedir: Path, linkdir: Path, file: Path) -> Path:
     """
     destdir = linkdir / file.parent
     if not destdir.exists():
-        logger.debug(f"creating directory {destdir}")
+        logger.debug(f"create directory {destdir}")
         os.makedirs(destdir)
 
     os.symlink(sourcedir / file, linkdir / file)
@@ -96,10 +96,10 @@ def main_symlinks(
     for dotfile, attrs in dotfiles.items():
         # if tags are given, skip files without a required tag
         if tags and not any(t in tags for t in attrs["tags"]):
-            logger.debug(f"{dotfile}: has no required tag: skipping")
+            logger.debug(f"{dotfile}: has no required tag: skip")
             continue
         if any(t in skip_tags for t in attrs["tags"]):
-            logger.debug(f"{dotfile}: has skip tag: skipping")
+            logger.debug(f"{dotfile}: has skip tag: skip")
             continue
 
         if (homedir / dotfile).exists():
@@ -182,7 +182,7 @@ if __name__ == "__main__":
     # install file-dotfile
     file_dotfile = Path("~/.local/bin/file-dotfile").expanduser()
     if not file_dotfile.exists():
-        logger.info("installing file-dotfile to ~/.local/bin/")
+        logger.info("install file-dotfile to ~/.local/bin/")
         if not args.dry:
             os.symlink(Path("file-dotfile.py").resolve(), file_dotfile)
 
