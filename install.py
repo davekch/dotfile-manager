@@ -75,7 +75,8 @@ def main_symlinks(
     config: dict,
     tags: list,
     skip_tags: list,
-    overwrite: bool,
+    always_overwrite: bool,
+    never_overwrite: bool,
     dry: bool,
 ):
     """
@@ -84,7 +85,8 @@ def main_symlinks(
     - configfile: path to dotfile-config.yml
     - tags: list of tags to include. if empty, all tags are included
     - skip_tags: list of tags to skip
-    - overwrite: overwrite existing files. if false, an interactive prompt appears
+    - always_overwrite: overwrite existing files. if false and never_overwrite is false, an interactive prompt appears
+    - never_overwrite: don't existing files. if false and always_overwrite is false, an interactive prompt appears
     - dry: run dry
     """
     dotfiles = get_dotfiles(dotpath, config)
@@ -101,20 +103,27 @@ def main_symlinks(
             continue
 
         if (homedir / dotfile).exists():
-            logger.warning(f"{dotfile} already exists")
-            if dry:
-                pass
-            elif overwrite or yesno("overwrite?"):
-                os.remove(homedir / dotfile)
-            else:
+            if not always_overwrite and not never_overwrite:
+                logger.warning(f"{dotfile} already exists")
+                if yesno(f"delete {dotfile}?"):
+                    logger.debug(f"delete {dotfile}")
+                    if not dry:
+                        os.remove(homedir / dotfile)
+                else:
+                    continue
+            elif always_overwrite:
+                logger.info(f"{dotfile} already exists, delete it")
+                if not dry:
+                    os.remove(homedir / dotfile)
+            elif never_overwrite:
+                logger.debug(f"{dotfile} already exists, skip")
                 continue
 
+        logger.info(
+            f"create symlink {str(homedir / dotfile)} -> {str(dotpath / dotfile)}"
+        )
         if not dry:
             create_symlink(dotpath, homedir, dotfile)
-        logger.info(
-            ("will create " if dry else "created ")
-            + f"symlink {str(homedir / dotfile)} -> {str(dotpath / dotfile)}"
-        )
 
 
 if __name__ == "__main__":
@@ -132,8 +141,12 @@ if __name__ == "__main__":
         help="specify tags to include. if no tags are given, everything is included",
     )
     parser.add_argument("--skip-tags", default="", help="specify tags to skip")
-    parser.add_argument(
-        "-y", "--yes", action="store_true", help="don't ask to replace existing files"
+    yesno_group = parser.add_mutually_exclusive_group()
+    yesno_group.add_argument(
+        "-y", "--yes", action="store_true", help="always replace existing files"
+    )
+    yesno_group.add_argument(
+        "-n", "--no", action="store_true", help="never replace existing files"
     )
     parser.add_argument(
         "--dry",
@@ -146,6 +159,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
     level = "DEBUG" if args.v else "INFO"
     logging.basicConfig(level=level, format="[%(levelname)-8s] %(message)s")
+
+    if args.dry:
+        logger.info("==================== DRY RUN ====================")
+        logger.info("no files or symlinks will be created or deleted")
+        logger.info("")
 
     # load config
     with open(args.config_file) as f:
@@ -165,7 +183,8 @@ if __name__ == "__main__":
     file_dotfile = Path("~/.local/bin/file-dotfile").expanduser()
     if not file_dotfile.exists():
         logger.info("installing file-dotfile to ~/.local/bin/")
-        os.symlink(Path("file-dotfile.py").resolve(), file_dotfile)
+        if not args.dry:
+            os.symlink(Path("file-dotfile.py").resolve(), file_dotfile)
 
     main_symlinks(
         Path(source).expanduser(),
@@ -174,5 +193,6 @@ if __name__ == "__main__":
         args.tags.split(",") if args.tags else [],
         args.skip_tags.split(",") if args.skip_tags else [],
         args.yes,
+        args.no,
         args.dry,
     )
