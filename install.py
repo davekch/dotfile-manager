@@ -64,6 +64,19 @@ def get_dotfiles(path=None, config=None) -> Dict[Path, dict]:
     return dotfiles
 
 
+def files_by_tags(dotfiles: dict) -> dict:
+    tags_map = {"-": []}
+    for dotfile, attrs in dotfiles.items():
+        if not attrs["tags"]:
+            tags_map["-"].append(dotfile)
+            continue
+        for tag in attrs["tags"]:
+            if tag not in tags_map:
+                tags_map[tag] = []
+            tags_map[tag].append(dotfile)
+    return tags_map
+
+
 def yesno(question):
     answer = input(f"{question} [y/n]: ")
     return answer in ["y", "yes"]
@@ -154,7 +167,15 @@ if __name__ == "__main__":
         help="dry run (does not create or delete any files)",
     )
     parser.add_argument("-v", action="store_true", help="verbose output")
-    parser.add_argument("-l", "--list-files", action="store_true", help="list files and tags and exit")
+    parser.add_argument(
+        "-l", "--list-files", action="store_true", help="list files and tags and exit"
+    )
+    parser.add_argument(
+        "-a",
+        "--list-tags",
+        action="store_true",
+        help="list tags and associated files and exit",
+    )
 
     args = parser.parse_args()
     level = "DEBUG" if args.v else "INFO"
@@ -175,8 +196,15 @@ if __name__ == "__main__":
     if args.list_files:
         dotfiles = get_dotfiles(Path(source).expanduser(), config)
         for file, attrs in dotfiles.items():
-            print(file)
-            print(f"    tags: [{', '.join(attrs['tags'])}]")
+            print(f"{file}    [tags: {{{','.join(attrs['tags'])}}}]")
+        sys.exit()
+
+    if args.list_tags:
+        dotfiles = get_dotfiles(Path(source).expanduser(), config)
+        for tag, files in files_by_tags(dotfiles).items():
+            print(tag)
+            for file in files:
+                print(f"    {file}")
         sys.exit()
 
     # install file-dotfile
