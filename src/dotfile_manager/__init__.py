@@ -2,6 +2,10 @@ from dataclasses import dataclass
 from pathlib import Path
 import toml
 import os
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class MisconfigurationError(Exception):
@@ -18,8 +22,8 @@ class Config:
         if "source" not in data:
             raise MisconfigurationError("missing configuration for source directory")
         return cls(
-            source=Path(data["source"]).expanduser(),
-            target=Path(data.get("target", "~")).expanduser(),
+            source=Path(data["source"]).expanduser().resolve(),
+            target=Path(data.get("target", "~")).expanduser().resolve(),
         )
 
     def to_dict(self) -> dict:
@@ -47,5 +51,14 @@ class Config:
     def write(self, path: str | Path=None):
         if not path:
             path = self.get_default_path()
-        with open(path, "wb") as f:
+        with open(path, "w") as f:
             toml.dump(self.to_dict(), f)
+        logger.info(f"saved configuration to {str(path)}")
+
+
+def init_manager(dotfile_repo: str, home: str):
+    config = Config(
+        source=Path(dotfile_repo).expanduser().resolve(),
+        target=Path(home).expanduser().resolve(),
+    )
+    config.write()
