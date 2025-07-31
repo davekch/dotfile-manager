@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 [project.scripts]
-dotfile-manager = "dotfile_manager:main"
+dotfile = "dotfile_manager.cli:main"
 
 [build-system]
 requires = ["hatchling"]
