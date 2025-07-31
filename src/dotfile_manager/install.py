@@ -6,10 +6,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-DOTPATH = Path(".")
-CONFIG = "dotfile-config.yml"
-
-
 def create_symlink(sourcedir: Path, linkdir: Path, file: Path) -> Path:
     """
     create a symlink in `linkdir/file` pointing to `sourcedir/file`, creating parent directories if necessary
@@ -52,13 +48,13 @@ def yesno(question):
     return answer in ["y", "yes"]
 
 
-def main_symlinks(
+def create_symlinks(
     dotfiles: list[Path],
     dotpath: Path,
     homedir: Path,
-    always_overwrite: bool,
-    never_overwrite: bool,
-    dry: bool,
+    always_overwrite: bool=False,
+    never_overwrite: bool=True,
+    dry: bool=False,
 ):
     """
     - dotfiles: list of files to create symlinks for
@@ -68,7 +64,11 @@ def main_symlinks(
     - never_overwrite: don't existing files. if false and always_overwrite is false, an interactive prompt appears
     - dry: run dry
     """
-    dotpath = dotpath.resolve()
+    if dry:
+        logger.info("==================== DRY RUN ====================")
+        logger.info("no files or symlinks will be created or deleted")
+        logger.info("")
+    dotpath = dotpath.expanduser().resolve()
     homedir = homedir.expanduser().resolve()
     logger.debug(f"{dotfiles=}")
     for dotfile in dotfiles:
@@ -94,60 +94,3 @@ def main_symlinks(
         )
         if not dry:
             create_symlink(dotpath, homedir, dotfile)
-
-
-if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--source", help="directory of dotfiles")
-    parser.add_argument("--target", help="home directory")
-    parser.add_argument(
-        "-f", "--config-file", default=CONFIG, help="path to config file"
-    )
-    yesno_group = parser.add_mutually_exclusive_group()
-    yesno_group.add_argument(
-        "-y", "--yes", action="store_true", help="always replace existing files"
-    )
-    yesno_group.add_argument(
-        "-n", "--no", action="store_true", help="never replace existing files"
-    )
-    parser.add_argument(
-        "--dry",
-        action="store_true",
-        help="dry run (does not create or delete any files)",
-    )
-    parser.add_argument("-v", action="store_true", help="verbose output")
-
-    args = parser.parse_args()
-    level = "DEBUG" if args.v else "INFO"
-    logging.basicConfig(level=level, format="[%(levelname)-8s] %(message)s")
-
-    if args.dry:
-        logger.info("==================== DRY RUN ====================")
-        logger.info("no files or symlinks will be created or deleted")
-        logger.info("")
-
-    # load config
-    with open(args.config_file) as f:
-        config = yaml.safe_load(f)
-
-    source = args.source or config.get("source", DOTPATH)
-    target = args.target or config.get("target", "~")
-
-    # install file-dotfile
-    file_dotfile = Path("~/.local/bin/file-dotfile").expanduser()
-    if not file_dotfile.exists():
-        logger.info("install file-dotfile to ~/.local/bin/")
-        if not args.dry:
-            os.symlink(Path("file-dotfile.py").resolve(), file_dotfile)
-
-    dotfiles = get_dotfiles(Path(source))
-    main_symlinks(
-        dotfiles,
-        Path(source).expanduser(),
-        Path(target).expanduser(),
-        args.yes,
-        args.no,
-        args.dry,
-    )
