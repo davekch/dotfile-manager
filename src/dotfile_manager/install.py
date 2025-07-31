@@ -1,11 +1,6 @@
-#!/usr/bin/env python3
-
-
 import os
 import sys
 from pathlib import Path
-import yaml
-from typing import Dict
 import logging
 
 logger = logging.getLogger(__name__)
@@ -27,18 +22,18 @@ def create_symlink(sourcedir: Path, linkdir: Path, file: Path) -> Path:
     os.symlink(sourcedir / file, linkdir / file)
 
 
-def get_dotfiles(path=None, config=None) -> Dict[Path, dict]:
+def get_dotfiles(path: Path, exclude: list[str]=None) -> list[Path]:
     """
-    return all dotfile paths in `path`, annotated by tags in `config`
+    return all dotfile paths in `path`, skipping all files that have a path in
+    `exclude` in their parent
     """
-    config = config or {}
-    path = path or config.get("source", DOTPATH)
-    exclude = config.get("exclude", [])
-    dot_attrs = config.get("dotfiles", {}) or {}
-
-    dotfiles = {}
+    if exclude:
+        exclude = [Path(e) for e in exclude]
+    else:
+        exclude = []
+    dotfiles = []
     for subdir, _, files in os.walk(path):
-        if subdir in exclude or any(
+        if Path(subdir) in exclude or any(
             Path(e) in Path(subdir).relative_to(path).parents for e in exclude
         ):
             continue
@@ -47,34 +42,9 @@ def get_dotfiles(path=None, config=None) -> Dict[Path, dict]:
                 continue
 
             dotfile = Path(subdir).relative_to(path) / file
-            dotfiles[dotfile] = {"tags": set()}
-            # iterate over config and set attr if there's a match
-            for df, attrs in dot_attrs.items():
-                # the entry must either be the full filepath + name or be a
-                # directory ending with /
-                if str(dotfile) == df or (
-                    df.endswith("/") and str(dotfile).startswith(df)
-                ):
-                    if isinstance(attrs["tags"], list):
-                        tags = set(attrs["tags"])
-                    else:
-                        tags = set([attrs["tags"]])
-                    dotfiles[dotfile]["tags"] |= tags
+            dotfiles.append(dotfile)
 
     return dotfiles
-
-
-def files_by_tags(dotfiles: dict) -> dict:
-    tags_map = {"-": []}
-    for dotfile, attrs in dotfiles.items():
-        if not attrs["tags"]:
-            tags_map["-"].append(dotfile)
-            continue
-        for tag in attrs["tags"]:
-            if tag not in tags_map:
-                tags_map[tag] = []
-            tags_map[tag].append(dotfile)
-    return tags_map
 
 
 def yesno(question):
@@ -83,38 +53,25 @@ def yesno(question):
 
 
 def main_symlinks(
+    dotfiles: list[Path],
     dotpath: Path,
     homedir: Path,
-    config: dict,
-    tags: list,
-    skip_tags: list,
     always_overwrite: bool,
     never_overwrite: bool,
     dry: bool,
 ):
     """
-    - dotpath: directory to scan for dotfiles
+    - dotfiles: list of files to create symlinks for
+    - dotpath: source directory
     - homedir: directory to link dotfiles to
-    - configfile: path to dotfile-config.yml
-    - tags: list of tags to include. if empty, all tags are included
-    - skip_tags: list of tags to skip
     - always_overwrite: overwrite existing files. if false and never_overwrite is false, an interactive prompt appears
     - never_overwrite: don't existing files. if false and always_overwrite is false, an interactive prompt appears
     - dry: run dry
     """
-    dotfiles = get_dotfiles(dotpath, config)
     dotpath = dotpath.resolve()
-    homedir = homedir.resolve()
+    homedir = homedir.expanduser().resolve()
     logger.debug(f"{dotfiles=}")
-    for dotfile, attrs in dotfiles.items():
-        # if tags are given, skip files without a required tag
-        if tags and not any(t in tags for t in attrs["tags"]):
-            logger.debug(f"{dotfile}: has no required tag: skip")
-            continue
-        if any(t in skip_tags for t in attrs["tags"]):
-            logger.debug(f"{dotfile}: has skip tag: skip")
-            continue
-
+    for dotfile in dotfiles:
         if (homedir / dotfile).exists():
             if not always_overwrite and not never_overwrite:
                 logger.warning(f"{dotfile} already exists")
@@ -148,12 +105,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "-f", "--config-file", default=CONFIG, help="path to config file"
     )
-    parser.add_argument(
-        "--tags",
-        default="",
-        help="specify tags to include. if no tags are given, everything is included",
-    )
-    parser.add_argument("--skip-tags", default="", help="specify tags to skip")
     yesno_group = parser.add_mutually_exclusive_group()
     yesno_group.add_argument(
         "-y", "--yes", action="store_true", help="always replace existing files"
@@ -167,15 +118,6 @@ if __name__ == "__main__":
         help="dry run (does not create or delete any files)",
     )
     parser.add_argument("-v", action="store_true", help="verbose output")
-    parser.add_argument(
-        "-l", "--list-files", action="store_true", help="list files and tags and exit"
-    )
-    parser.add_argument(
-        "-a",
-        "--list-tags",
-        action="store_true",
-        help="list tags and associated files and exit",
-    )
 
     args = parser.parse_args()
     level = "DEBUG" if args.v else "INFO"
@@ -193,20 +135,6 @@ if __name__ == "__main__":
     source = args.source or config.get("source", DOTPATH)
     target = args.target or config.get("target", "~")
 
-    if args.list_files:
-        dotfiles = get_dotfiles(Path(source).expanduser(), config)
-        for file, attrs in dotfiles.items():
-            print(f"{file}    [tags: {{{','.join(attrs['tags'])}}}]")
-        sys.exit()
-
-    if args.list_tags:
-        dotfiles = get_dotfiles(Path(source).expanduser(), config)
-        for tag, files in files_by_tags(dotfiles).items():
-            print(tag)
-            for file in files:
-                print(f"    {file}")
-        sys.exit()
-
     # install file-dotfile
     file_dotfile = Path("~/.local/bin/file-dotfile").expanduser()
     if not file_dotfile.exists():
@@ -214,12 +142,11 @@ if __name__ == "__main__":
         if not args.dry:
             os.symlink(Path("file-dotfile.py").resolve(), file_dotfile)
 
+    dotfiles = get_dotfiles(Path(source))
     main_symlinks(
+        dotfiles,
         Path(source).expanduser(),
         Path(target).expanduser(),
-        config,
-        args.tags.split(",") if args.tags else [],
-        args.skip_tags.split(",") if args.skip_tags else [],
         args.yes,
         args.no,
         args.dry,
