@@ -1,0 +1,19 @@
+[project]
+name = "dotfile-manager"
+version = "0.1.0"
+description = "a simple dotfile manager"
+readme = "README.md"
+authors = [
+    { name = "davekch", email = "dvkch@proton.me" }
+]
+requires-python = ">=3.9"
+dependencies = [
+    "toml>=0.10.2",
+]
+
+[project.scripts]
+dotfile-manager = "dotfile_manager:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

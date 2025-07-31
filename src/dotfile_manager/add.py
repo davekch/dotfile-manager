@@ -12,7 +12,7 @@ if REPODIR.is_symlink():
 REPODIR = REPODIR.parent
 sys.path.insert(0, REPODIR)
 
-import install
+import dotfile_manager.install as install
 
 logger = logging.getLogger(__name__)
 
