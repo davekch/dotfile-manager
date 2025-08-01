@@ -70,9 +70,12 @@ def create_symlinks(
         logger.info("")
     dotpath = dotpath.expanduser().resolve()
     homedir = homedir.expanduser().resolve()
-    logger.debug(f"{dotfiles=}")
     for dotfile in dotfiles:
         if (homedir / dotfile).exists():
+            # check if this file is already linked to the target
+            if (homedir / dotfile).is_symlink() and (homedir / dotfile).resolve() == dotpath / dotfile:
+                logger.debug(f"file {dotfile} is already linked correctly, skip")
+                continue
             if not always_overwrite and not never_overwrite:
                 logger.warning(f"{dotfile} already exists")
                 if yesno(f"delete {dotfile}?"):
