@@ -62,3 +62,13 @@ def init_manager(dotfile_repo: str, home: str):
         target=Path(home).expanduser().resolve(),
     )
     config.write()
+
+
+def setup_logging(verbose: bool):
+    if verbose:
+        level = logging.DEBUG
+        format = "%(levelname)s: %(message)s"
+    else:
+        level = logging.INFO
+        format = "%(message)s"
+    logging.basicConfig(level=level, format=format)

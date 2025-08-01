@@ -2,7 +2,7 @@ from argparse import ArgumentParser, Namespace
 import logging
 from pathlib import Path
 
-from dotfile_manager import init_manager, Config
+from dotfile_manager import init_manager, Config, setup_logging
 from dotfile_manager.install import create_symlinks, get_dotfiles
 
 
@@ -37,7 +37,7 @@ def cli_install(args: Namespace):
 
 def parse_args():
     parser = ArgumentParser()
-    parser.add_argument("-v", action="store_true", help="verbose output")
+    parser.add_argument("-v", "--verbose", action="store_true", help="verbose output")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # command to initialize dotfile manager
@@ -69,6 +69,5 @@ def parse_args():
 
 def main():
     args = parse_args()
-    level = "DEBUG" if args.v else "INFO"
-    logging.basicConfig(level=level, format="%(message)s")
+    setup_logging(args.verbose)
     args.func(args)
