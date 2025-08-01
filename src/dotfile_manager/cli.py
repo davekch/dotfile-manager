@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 
 from dotfile_manager import init_manager, Config, setup_logging
+from dotfile_manager.add import replace_many_with_symlinks
 from dotfile_manager.install import create_symlinks, get_dotfiles
 
 
@@ -35,6 +36,16 @@ def cli_install(args: Namespace):
     )
 
 
+def cli_add(args: Namespace):
+    config = Config.load()
+    files = [Path(f) for f in args.files]
+    replace_many_with_symlinks(
+        files,
+        source=config.source,
+        target=config.target,
+    )
+
+
 def parse_args():
     parser = ArgumentParser()
     parser.add_argument("-v", "--verbose", action="store_true", help="verbose output")
@@ -63,6 +74,11 @@ def parse_args():
         help="dry run (does not create or delete any files)",
     )
     parser_install.set_defaults(func=cli_install)
+
+    # command to add files to the dotfile repo
+    parser_add = subparsers.add_parser("add", help="add files to the dotfile repository")
+    parser_add.add_argument("files", nargs="+")
+    parser_add.set_defaults(func=cli_add)
 
     return parser.parse_args()
 

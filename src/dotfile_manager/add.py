@@ -1,68 +1,38 @@
-#!/usr/bin/env python3
-
 from pathlib import Path
-import sys
 import os
 import logging
-import yaml
 
-REPODIR = Path(__file__).resolve()
-if REPODIR.is_symlink():
-    REPODIR = Path(os.readlink(REPODIR))
-REPODIR = REPODIR.parent
-sys.path.insert(0, REPODIR)
-
-import dotfile_manager.install as install
 
 logger = logging.getLogger(__name__)
 
 
-def get_abs_paths(files: list, config: dict) -> list:
+def replace_with_symlink(file: Path, source: Path, target: Path):
     """
-    get the source and target absolute paths for `files`
+    move `file` to `source` (the dotfiles repository), replicating `file`'s relative
+    location to `target` (the home directory / common root of all dotfiles) and create
+    a symlink to the moved file in `source`
     """
-    sourcedir = Path(config.get("source", ".")).expanduser()
-    targetdir = Path(config.get("target", "~")).expanduser()
-    # if source or target are not absolute, assume relative paths to this repo
-    if not sourcedir.is_absolute():
-        sourcedir = (REPODIR / sourcedir).resolve()
-    if not targetdir.is_absolute():
-        targetdir = (REPODIR / targetdir).resolve()
+    file = file.expanduser().absolute()
+    if file.is_symlink():
+        logger.error(f"cannot add {file} to dotfiles repository: is a symlink")
+        return
+    if target not in file.parents:
+        logger.error(f"cannot add file {file} to dotfiles repository: file is not in the configured target directory ({target})")
+        return
+    if not file.exists():
+        logger.error(f"file not found: {file}")
+        return
+    dotfile_path = source / file.relative_to(target)
+    logger.debug("move file to dotfiles repository")
+    if not dotfile_path.parent.exists():
+        logger.debug("directory does not exist in dotfiles repository, create")
+        os.makedirs(dotfile_path.parent)
+    os.rename(file, dotfile_path)
+    logger.debug("create symlink to moved file")
+    os.symlink(dotfile_path, file)
+    logger.info(f"replaced {file} with symlink to {dotfile_path}")
 
-    paths = []
+
+def replace_many_with_symlinks(files: list[Path], source: Path, target: Path):
     for file in files:
-        source = Path(file).resolve()
-        # note that in the config, source and target are named from
-        # the POV of installing dotfiles from the repo, hence "sourcedir"
-        # refers to the repository and "targetdir" refers to HOME.
-        # here, we want to move a file from its original path to the
-        # repository, keeping the folder structure relative to HOME.
-        target = sourcedir / source.relative_to(targetdir)
-        paths.append((source, target))
-    return paths
-
-
-if __name__ == "__main__":
-    import argparse
-
-    logging.basicConfig(level="INFO", format="[%(levelname)-8s] %(message)s")
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("files", nargs="+")
-    parser.add_argument(
-        "-f",
-        "--config-file",
-        default=REPODIR / install.CONFIG,
-        help="path to config file",
-    )
-    args = parser.parse_args()
-
-    with open(args.config_file) as f:
-        config = yaml.safe_load(f)
-
-    for original, moved in get_abs_paths(args.files, config):
-        logger.info(f"replacing {original} with symlink to {moved}")
-        if not moved.parent.exists():
-            os.makedirs(moved.parent)
-        os.rename(original, moved)
-        os.symlink(moved, original)
+        replace_with_symlink(file, source, target)
