@@ -1,11 +1,16 @@
-# file-dotfiles
-to file your dotfiles
+# Dotfile manager
+A simple CLI tool to manage your dotfiles in a repository.
 
-## usage
-### install dotfiles from a repository
-keep your dotfiles in this or in a separate repository. for example
+## Install
+```bash
+pip install git+https://github.com/davekch/dotfile-manager.git
+```
+
+## Usage
+### Install dotfiles from a repository
+Keep your dotfiles in a separate repository. For example
 ```text
-.
+dotfiles/
 ├── .config
 │  └── nvim
 │     └── init.vim
@@ -14,48 +19,52 @@ keep your dotfiles in this or in a separate repository. for example
 └── .zshrc
 ```
 
-running `./install.py --source /path/to/repo` will create symlinks to these files in your home directory, keeping the directory structure. for the example above, the script will create those links:
+running `dotfile init .` in it and then `dotfile install` will create symlinks to these files in your home directory, keeping the directory structure. For the example above, the command will create those links:
 ```text
-$HOME/.zshrc -> /path/to/repo/.zshrc
-$HOME/.config/nvim/init.vim -> /path/to/repo/testbed/.config/nvim/init.vim
-$HOME/.ssh/config -> /path/to/repo/testbed/.ssh/config
+$HOME/.zshrc -> /path/to/dotfiles/.zshrc
+$HOME/.config/nvim/init.vim -> /path/to/dotfiles/.config/nvim/init.vim
+$HOME/.ssh/config -> /path/to/dotfiles/.ssh/config
 ```
 
-### adding dotfiles to the repository
-`file-dotfile file1 file2 ...` will copy these files to your repository and replace them with symlinks to the files in the repository.
+You can also selectively install dotfiles: `dotfile install .config`
 
-### more
-for extra fancyness, tag files or folders in the `dotfiles` section of `dotfile-config.yml` and specify combinations of tags to install. for example:
-```yaml
-dotfiles:
-  .ssh/:
-    tags: ssh
-  .config/:
-    tags: [config, blah]
-  .config/gtk-3.0/gtk.css:
-    tags: gui
-  .zshrc:
-    tags: zsh
+### Adding dotfiles to the repository
+`dotfile add file1 file2 ...` will copy the listed files to your repository and replace them with symlinks to the copied files in the repository.
+
+### More
+A configuration file is created in `~/.config/dotfile-manager/config.toml` when running `dofile install .`.
+
+All options:
 ```
-now use `./install.py --tags config,ssh --skip-tags gui` to install every dot file in `.ssh` and `.config/` but not those that are tagged with `gui`.
+usage: dotfile [-h] [-v] {init,install,add} ...
 
-all arguments:
-```text
-usage: install.py [-h] [--source SOURCE] [--target TARGET] [-f CONFIG_FILE] [--tags TAGS] [--skip-tags SKIP_TAGS] [-y | -n] [--dry] [-v] [-l] [-a]
+positional arguments:
+  {init,install,add}
+    init              initialize dotfile manager
+    install           create symlinks for dotfiles
+    add               add files to the dotfile repository
 
-optional arguments:
+options:
+  -h, --help          show this help message and exit
+  -v, --verbose       verbose output
+```
+
+```
+usage: dotfile install [-h] [-e [EXCLUDE ...]] [--source SOURCE] [--target TARGET] [-y | -n] [--dry] [files ...]
+
+positional arguments:
+  files                 file paths relative to source to install. default is '.'
+
+options:
   -h, --help            show this help message and exit
+  -e [EXCLUDE ...], --exclude [EXCLUDE ...]
+                        file paths relative to source not to install
   --source SOURCE       directory of dotfiles
   --target TARGET       home directory
-  -f CONFIG_FILE, --config-file CONFIG_FILE
-                        path to config file
-  --tags TAGS           specify tags to include. if no tags are given, everything is included
-  --skip-tags SKIP_TAGS
-                        specify tags to skip
   -y, --yes             always replace existing files
   -n, --no              never replace existing files
   --dry                 dry run (does not create or delete any files)
-  -v                    verbose output
-  -l, --list-files      list files and tags and exit
-  -a, --list-tags       list tags and associated files and exit
 ```
+
+# Disclaimer
+This tool moves and deletes files. Bugs can lead to loss of data. Use at your own risk.
