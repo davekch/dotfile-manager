@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 import toml
 import os
@@ -16,6 +16,9 @@ class MisconfigurationError(Exception):
 class Config:
     source: Path   # from where to install dotfiles
     target: Path   # where dotfiles should be installed to
+    ignore: list[Path] = field(
+        default_factory=lambda: [Path(".git"), Path(".gitignore")]
+    )
 
     @classmethod
     def from_dict(cls, data: dict) -> "Config":
@@ -24,12 +27,14 @@ class Config:
         return cls(
             source=Path(data["source"]).expanduser().resolve(),
             target=Path(data.get("target", "~")).expanduser().resolve(),
+            ignore=[Path(i) for i in data.get("ignore", [])]
         )
 
     def to_dict(self) -> dict:
         return {
             "source": str(self.source),
             "target": str(self.target),
+            "ignore": [str(i) for i in self.ignore]
         }
 
     @staticmethod

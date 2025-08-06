@@ -25,7 +25,11 @@ def cli_install(args: Namespace):
     else:
         target = config.target
 
-    dotfiles = get_dotfiles(source, only=args.files, exclude=args.exclude)
+    dotfiles = get_dotfiles(
+        source,
+        only=args.files,
+        exclude=config.ignore + args.exclude
+    )
     create_symlinks(
         dotfiles=dotfiles,
         dotpath=source,
@@ -60,7 +64,7 @@ def parse_args():
     # command to install dotfiles
     parser_install = subparsers.add_parser("install", help="create symlinks for dotfiles")
     parser_install.add_argument("files", nargs="*", help="file paths relative to source to install. default is '.'")
-    parser_install.add_argument("-e", "--exclude", nargs="*", help="file paths relative to source not to install")
+    parser_install.add_argument("-e", "--exclude", nargs="*", help="file paths relative to source not to install", default=[])
     parser_install.add_argument("--source", help="directory of dotfiles")
     parser_install.add_argument("--target", help="home directory")
     yesno_group = parser_install.add_mutually_exclusive_group()
