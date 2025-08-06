@@ -76,7 +76,8 @@ def create_symlinks(
     dotpath = dotpath.expanduser().resolve()
     homedir = homedir.expanduser().resolve()
     for dotfile in dotfiles:
-        if (homedir / dotfile).exists():
+        # check if the file already exists. os.path.lexists catches broken links too
+        if (homedir / dotfile).exists() or os.path.lexists(homedir / dotfile):
             # check if this file is already linked to the target
             if (homedir / dotfile).is_symlink() and (homedir / dotfile).resolve() == dotpath / dotfile:
                 logger.debug(f"file {dotfile} is already linked correctly, skip")
