@@ -34,8 +34,8 @@ def get_dotfiles(source: Path, only: list[str]=None, exclude: list[str]=None) ->
             )
         elif path.is_dir():
             for subdir, _, files in os.walk(path):
-                if Path(subdir) in exclude or any(
-                    Path(e) in Path(subdir).relative_to(source).parents for e in exclude
+                if source / subdir in exclude or any(
+                    e in (source / subdir).parents for e in exclude
                 ):
                     continue
                 for file in files:
