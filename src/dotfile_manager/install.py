@@ -18,27 +18,32 @@ def create_symlink(sourcedir: Path, linkdir: Path, file: Path) -> Path:
     os.symlink(sourcedir / file, linkdir / file)
 
 
-def get_dotfiles(path: Path, exclude: list[str]=None) -> list[Path]:
+def get_dotfiles(source: Path, only: list[str]=None, exclude: list[str]=None) -> list[Path]:
     """
-    return all dotfile paths in `path`, skipping all files that have a path in
+    return all paths in `source`, skipping all files that have a path in
     `exclude` in their parent
     """
-    if exclude:
-        exclude = [Path(e) for e in exclude]
-    else:
-        exclude = []
+    exclude = [source / e for e in (exclude or [])]
+    paths = [source / o for o in (only or ["."])]  # if `only` is empty, use the full source
+    # list of all wanted dotfiles to be constructed
     dotfiles = []
-    for subdir, _, files in os.walk(path):
-        if Path(subdir) in exclude or any(
-            Path(e) in Path(subdir).relative_to(path).parents for e in exclude
-        ):
-            continue
-        for file in files:
-            if file in exclude:
-                continue
+    for path in paths:
+        if path.is_file() and path not in exclude:
+            dotfiles.append(
+                path.relative_to(source)
+            )
+        elif path.is_dir():
+            for subdir, _, files in os.walk(path):
+                if Path(subdir) in exclude or any(
+                    Path(e) in Path(subdir).relative_to(source).parents for e in exclude
+                ):
+                    continue
+                for file in files:
+                    if (source / subdir / file) in exclude:
+                        continue
 
-            dotfile = Path(subdir).relative_to(path) / file
-            dotfiles.append(dotfile)
+                    dotfile = Path(subdir).relative_to(source) / file
+                    dotfiles.append(dotfile)
 
     return dotfiles
 
