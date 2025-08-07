@@ -32,7 +32,7 @@ You can also selectively install dotfiles: `dotfile install .config`
 `dotfile add file1 file2 ...` will copy the listed files to your repository and replace them with symlinks to the copied files in the repository.
 
 ### More
-A configuration file is created in `~/.config/dotfile-manager/config.toml` when running `dofile install .`.
+A configuration file is created in `~/.config/dotfile-manager/config.toml` when running `dofile init .`.
 
 All options:
 ```
